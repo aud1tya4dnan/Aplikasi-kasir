@@ -1,0 +1,187 @@
+// This is your Prisma schema file
+// Based on ERD Database.png
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String   // bcrypt hashed
+  name      String
+  role      String   @default("kasir") // kasir, admin
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+// Category untuk produk
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+
+  @@map("categories")
+}
+
+// Product/Produk with soft delete
+model Product {
+  id         String   @id @default(cuid())
+  code       String   @unique
+  name       String
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  stock      Int
+  minStock   Int      @default(5)
+  buyPrice   Decimal  @db.Decimal(10, 2)
+  sellPrice  Decimal  @db.Decimal(10, 2)
+  status     ProductStatus @default(ACTIVE)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  transactionItems TransactionItem[]
+  purchaseItems    PurchaseItem[]
+
+  @@index([categoryId])
+  @@index([status])
+  @@map("products")
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// Customer untuk utang
+model Customer {
+  id           String        @id @default(cuid())
+  name         String
+  phone        String?
+  address      String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  transactions Transaction[]
+  debts        Debt[]
+
+  @@map("customers")
+}
+
+// Transaction/Penjualan
+model Transaction {
+  id             String            @id @default(cuid())
+  invoiceNumber  String            @unique
+  customerId     String?
+  customer       Customer?         @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  totalAmount    Decimal           @db.Decimal(12, 2)
+  paymentMethod  String            // cash, qris, credit
+  paymentAmount  Decimal?          @db.Decimal(12, 2) // Amount paid for cash
+  changeAmount   Decimal?          @db.Decimal(12, 2) // Change returned
+  qrisData       String?           // QRIS QR code data
+  status         String            @default("completed") // completed, pending
+  notes          String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  items          TransactionItem[]
+  debt           Debt?
+
+  @@map("transactions")
+}
+
+// Transaction items (detail penjualan)
+model TransactionItem {
+  id            String      @id @default(cuid())
+  transactionId String
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product     @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity      Int
+  pricePerUnit  Decimal     @db.Decimal(10, 2) // Price at time of sale (bisa diubah)
+  subtotal      Decimal     @db.Decimal(12, 2)
+  createdAt     DateTime    @default(now())
+
+  @@map("transaction_items")
+}
+
+// Purchase/Belanja/Kulakan
+model Purchase {
+  id            String         @id @default(cuid())
+  purchaseNumber String        @unique
+  supplier      String?        // Nama supplier/toko
+  totalAmount   Decimal        @db.Decimal(12, 2)
+  notes         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  items         PurchaseItem[]
+
+  @@map("purchases")
+}
+
+// Purchase items (detail belanja)
+model PurchaseItem {
+  id            String   @id @default(cuid())
+  purchaseId    String
+  purchase      Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  quantity      Int
+  pricePerUnit  Decimal  @db.Decimal(10, 2) // Harga beli per unit
+  subtotal      Decimal  @db.Decimal(12, 2)
+  createdAt     DateTime @default(now())
+
+  @@map("purchase_items")
+}
+
+// Debt/Utang pelanggan
+model Debt {
+  id            String        @id @default(cuid())
+  transactionId String        @unique
+  transaction   Transaction   @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  customerId    String
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  totalDebt     Decimal       @db.Decimal(12, 2)
+  paidAmount    Decimal       @default(0) @db.Decimal(12, 2)
+  remainingDebt Decimal       @db.Decimal(12, 2)
+  status        String        @default("unpaid") // unpaid, partial, paid
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  payments      DebtPayment[]
+
+  @@map("debts")
+}
+
+// Debt payment (pembayaran cicilan utang)
+model DebtPayment {
+  id          String   @id @default(cuid())
+  debtId      String
+  debt        Debt     @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  amount      Decimal  @db.Decimal(12, 2)
+  paymentMethod String @default("cash") // cash, transfer
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@map("debt_payments")
+}
+
+// Store settings
+model StoreSettings {
+  id          String   @id @default(cuid())
+  storeName   String
+  address     String?
+  phone       String?
+  minStockAlert Int    @default(5) // Global minimum stock alert
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("store_settings")
+}
