@@ -57,6 +57,13 @@
 
                 <form @submit.prevent="saveCategory" class="space-y-4">
                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Icon (Emoji)</label>
+                        <input v-model="form.icon" type="text" class="input" placeholder="Contoh: 🍎 📱 🛒"
+                            maxlength="2" />
+                        <p class="text-xs text-gray-500 mt-1">Gunakan emoji untuk icon kategori</p>
+                    </div>
+
+                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Nama Kategori *</label>
                         <input v-model="form.name" type="text" required class="input" />
                     </div>
@@ -89,6 +96,7 @@ const editingCategory = ref<any>(null)
 const categories = ref<any[]>([])
 
 const form = ref({
+    icon: '',
     name: '',
     description: '',
 })
@@ -149,7 +157,7 @@ async function deleteCategory(category: any) {
 function closeModal() {
     showModal.value = false
     editingCategory.value = null
-    form.value = { name: '', description: '' }
+    form.value = { icon: '', name: '', description: '' }
 }
 
 onMounted(() => {

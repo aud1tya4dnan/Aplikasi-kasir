@@ -4,6 +4,7 @@ dist/
 .vscode/
 
 reference/
-.DS_Store
 
-dockerimages/
+image*
+
+"Features need fix.md"

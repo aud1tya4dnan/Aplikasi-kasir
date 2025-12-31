@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # PostgreSQL Database
   db:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     container_name: pos-database
     environment:
       POSTGRES_USER: pos_user
@@ -33,11 +33,6 @@ services:
       JWT_EXPIRES_IN: 7d
       PORT: 3000
       NODE_ENV: production
-      QRIS_MERCHANT_ID: "00020101021126570011ID"
-      QRIS_MERCHANT_NAME: "HMIT STORE"
-      QRIS_MERCHANT_CITY: "Surabaya"
-      QRIS_STATIC_STRING: "00020101021126570011ID.DANA.WWW011893600915342035948602094203594860303UMI51440014ID.CO.QRIS.WWW0215ID10232571351530303UMI5204561153033605802ID5910HMIT Store6013Kota Surabaya61056017763046444"
-    # Backend not exposed to host - only accessible via frontend reverse proxy
     expose:
       - "3000"
     depends_on:
@@ -46,7 +41,7 @@ services:
     networks:
       - pos-network
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      test: ["CMD", "node", "-e", "require('http').get('http://backend:3000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -67,7 +62,7 @@ services:
     networks:
       - pos-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://frontend/health"]
       interval: 30s
       timeout: 10s
       retries: 3

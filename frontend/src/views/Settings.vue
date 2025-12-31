@@ -37,6 +37,25 @@
                 </div>
 
                 <div class="pt-4 border-t">
+                    <h3 class="text-lg font-semibold mb-4">Pengaturan QRIS</h3>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            QRIS Static String
+                        </label>
+                        <textarea v-model="form.qrisStaticString" class="input font-mono text-xs" rows="4"
+                            placeholder="Paste QRIS static string dari payment provider (contoh: 00020101021126570011ID.DANA...)"></textarea>
+                        <p class="text-xs text-gray-500 mt-1">
+                            String QRIS statis dari payment provider Anda. Isi field ini agar pembayaran QRIS berfungsi.
+                        </p>
+                        <p class="text-xs text-blue-600 mt-1">
+                            💡 QRIS saat ini: {{ form.qrisStaticString ? 'Terpasang (' +
+                                form.qrisStaticString.substring(0, 20) + '...)' : 'Belum diatur' }}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="pt-4 border-t">
                     <button type="submit" class="btn btn-primary" :disabled="saving">
                         {{ saving ? 'Menyimpan...' : 'Simpan Pengaturan' }}
                     </button>
@@ -58,6 +77,7 @@ const form = ref({
     address: '',
     phone: '',
     minStockAlert: 5,
+    qrisStaticString: '',
 })
 
 async function fetchSettings() {

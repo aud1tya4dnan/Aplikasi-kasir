@@ -3,7 +3,7 @@ import prisma from '../lib/prisma.js'
 import { authMiddleware } from '../middleware/auth.js'
 import { validateData, createTransactionSchema } from '../utils/validators.js'
 import { updateStock } from '../services/stock.service.js'
-import { generateQRIS, getQRISConfig } from '../services/qris.service.js'
+import { generateQRIS } from '../services/qris.service.js'
 import { generateReceipt, prepareReceiptData } from '../services/receipt.service.js'
 import { Decimal } from '@prisma/client/runtime/library'
 
@@ -117,11 +117,7 @@ transactions.post('/', async (c) => {
         // For QRIS, generate QR code
         let qrisData: string | undefined
         if (data.paymentMethod === 'qris') {
-            const qrisConfig = getQRISConfig()
-            qrisData = await generateQRIS({
-                ...qrisConfig,
-                amount: totalAmount,
-            })
+            qrisData = await generateQRIS(totalAmount)
         }
 
         // Create transaction with items

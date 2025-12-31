@@ -125,5 +125,83 @@ purchases.post('/', async (c) => {
     }
 })
 
+// Update purchase
+purchases.put('/:id', async (c) => {
+    try {
+        const id = c.req.param('id')
+        const body = await c.req.json()
+        const data = validateData(createPurchaseSchema, body)
+
+        // Get existing purchase
+        const existingPurchase = await prisma.purchase.findUnique({
+            where: { id },
+            include: { items: true },
+        })
+
+        if (!existingPurchase) {
+            return c.json({ error: 'Purchase not found' }, 404)
+        }
+
+        // Calculate new total
+        const totalAmount = data.items.reduce((sum, item) => sum + (item.quantity * item.pricePerUnit), 0)
+
+        const purchase = await prisma.$transaction(async (tx) => {
+            // Delete old items
+            await tx.purchaseItem.deleteMany({
+                where: { purchaseId: id },
+            })
+
+            // Reverse old stock changes
+            for (const oldItem of existingPurchase.items) {
+                await updateStock([{
+                    productId: oldItem.productId,
+                    quantity: oldItem.quantity,
+                    type: 'decrease', // Reverse the increase
+                }])
+            }
+
+            // Update purchase with new items
+            const updatedPurchase = await tx.purchase.update({
+                where: { id },
+                data: {
+                    supplier: data.supplier,
+                    totalAmount: new Decimal(totalAmount),
+                    notes: data.notes,
+                    items: {
+                        create: data.items.map(item => ({
+                            productId: item.productId,
+                            quantity: Number(item.quantity),
+                            pricePerUnit: new Decimal(item.pricePerUnit),
+                            subtotal: new Decimal(Number(item.quantity) * item.pricePerUnit),
+                        })),
+                    },
+                },
+                include: {
+                    items: {
+                        include: {
+                            product: true,
+                        },
+                    },
+                },
+            })
+
+            // Apply new stock changes
+            await updateStock(
+                data.items.map(item => ({
+                    productId: item.productId,
+                    quantity: Number(item.quantity),
+                    type: 'increase',
+                }))
+            )
+
+            return updatedPurchase
+        })
+
+        return c.json(purchase)
+    } catch (error: any) {
+        return c.json({ error: error.message || 'Failed to update purchase' }, 400)
+    }
+})
+
 export default purchases
 

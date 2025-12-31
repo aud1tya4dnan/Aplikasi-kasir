@@ -31,11 +31,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 
 const user = computed(() => authStore.user)
@@ -44,7 +45,7 @@ const menuItems = [
   { path: '/', label: 'Dashboard', icon: 'bi-house-door' },
   { path: '/cashier', label: 'Kasir', icon: 'bi-cart' },
   { path: '/products', label: 'Produk', icon: 'bi-box-seam' },
-  { path: '/categories', label: 'Kategori', icon: 'bi-tags' },
+  { path: '/categories', label: 'Kategori', icon: 'bi-tag' },
   { path: '/purchases', label: 'Belanja', icon: 'bi-truck' },
   { path: '/customers', label: 'Pelanggan', icon: 'bi-people' },
   { path: '/reports', label: 'Laporan', icon: 'bi-graph-up' },

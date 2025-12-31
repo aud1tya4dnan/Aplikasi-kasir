@@ -9,9 +9,17 @@ export interface StockUpdate {
 
 /**
  * Update product stock after transaction or purchase
+ * Ensures quantity is always treated as number
  */
 export async function updateStock(updates: StockUpdate[]): Promise<void> {
     for (const update of updates) {
+        // Ensure quantity is a number
+        const quantity = Number(update.quantity)
+
+        if (isNaN(quantity)) {
+            throw new Error(`Invalid quantity for product ID ${update.productId}: ${update.quantity}`)
+        }
+
         const product = await prisma.product.findUnique({
             where: { id: update.productId },
             select: { stock: true },
@@ -22,8 +30,8 @@ export async function updateStock(updates: StockUpdate[]): Promise<void> {
         }
 
         const newStock = update.type === 'increase'
-            ? product.stock + update.quantity
-            : product.stock - update.quantity
+            ? product.stock + quantity
+            : product.stock - quantity
 
         if (newStock < 0) {
             throw new Error(`Insufficient stock for product ID ${update.productId}`)
@@ -59,6 +67,8 @@ export async function getLowStockProducts() {
  * Check if product has sufficient stock
  */
 export async function checkStock(productId: string, quantity: number): Promise<boolean> {
+    const quantityNum = Number(quantity)
+
     const product = await prisma.product.findUnique({
         where: { id: productId },
         select: { stock: true },
@@ -68,7 +78,7 @@ export async function checkStock(productId: string, quantity: number): Promise<b
         throw new Error(`Product with ID ${productId} not found`)
     }
 
-    return product.stock >= quantity
+    return product.stock >= quantityNum
 }
 
 /**

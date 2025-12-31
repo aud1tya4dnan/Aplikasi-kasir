@@ -7,7 +7,7 @@
       <div class="lg:col-span-2">
         <div class="card">
           <div class="mb-4">
-            <input v-model="searchProduct" type="text" class="input" placeholder="Cari produk..."
+            <input v-model="searchProduct" type="text" class="input" placeholder="Cari produk (nama atau kode barcode)..."
               @input="debouncedSearch" />
           </div>
 
@@ -301,8 +301,196 @@ async function processTransaction() {
 }
 
 async function printReceipt() {
-  // In real app, this would trigger print dialog or send to printer
-  alert('Fungsi cetak struk akan diimplementasikan')
+  try {
+    // Get transaction ID from last transaction
+    const transactionId = lastInvoice.value.split('-')[1] // Extract ID from invoice
+    
+    // For now, we'll use the data we already have from the transaction response
+    // In production, you might want to fetch from API: await transactionsAPI.getReceipt(transactionId)
+    
+    // Create a hidden div for the receipt
+    const printWindow = window.open('', '_blank', 'width=600,height=800')
+    
+    if (!printWindow) {
+      alert('Pop-up diblokir! Silakan izinkan pop-up untuk mencetak struk.')
+      return
+    }
+
+    // Generate receipt HTML
+    const receiptHTML = generateReceiptHTML()
+    
+    printWindow.document.write(receiptHTML)
+    printWindow.document.close()
+    
+    // Wait for content to load then print
+    printWindow.onload = () => {
+      printWindow.print()
+    }
+  } catch (error) {
+    console.error('Error printing receipt:', error)
+    alert('Gagal mencetak struk')
+  }
+}
+
+function generateReceiptHTML() {
+  // Get store settings - in production, fetch from API
+  const storeName = 'Warung Saya'
+  
+  const items = cart.value
+  const paymentMethodLabel = 
+    paymentMethod.value === 'cash' ? 'Tunai' :
+    paymentMethod.value === 'qris' ? 'QRIS' :
+    'Utang/Bayar Nanti'
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Struk - ${lastInvoice.value}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Courier New', monospace;
+      width: 58mm;
+      padding: 10px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 10px;
+      border-bottom: 1px dashed #000;
+      padding-bottom: 10px;
+    }
+    .header h1 {
+      font-size: 18px;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+    .info {
+      margin: 10px 0;
+      border-bottom: 1px dashed #000;
+      padding-bottom: 8px;
+    }
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 3px 0;
+      font-size: 11px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      font-size: 10px;
+    }
+    th {
+      border-bottom: 1px solid #000;
+      padding: 3px 0;
+      text-align: left;
+    }
+    td {
+      padding: 3px 0;
+    }
+    .text-right { text-align: right; }
+    .text-center { text-align: center; }
+    .total-section {
+      border-top: 1px dashed #000;
+      padding-top: 8px;
+      margin-top: 5px;
+    }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 14px;
+      font-weight: bold;
+      margin: 5px 0;
+    }
+    .payment-row {
+      display: flex;
+      justify-content: space-between;
+      margin: 3px 0;
+      font-size: 12px;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 15px;
+      border-top: 1px dashed #000;
+      padding-top: 10px;
+      font-size: 11px;
+    }
+    @media print {
+      body { padding: 0; }
+    }
+  </style>
+</head>
+<body onload="window.print(); setTimeout(() => window.close(), 100)">
+  <div class="header">
+    <h1>${storeName}</h1>
+  </div>
+  
+  <div class="info">
+    <div class="info-row">
+      <span>No. Invoice:</span>
+      <span>${lastInvoice.value}</span>
+    </div>
+    <div class="info-row">
+      <span>Tanggal:</span>
+      <span>${new Date().toLocaleString('id-ID')}</span>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th class="text-center">Qty</th>
+        <th class="text-right">Harga</th>
+        <th class="text-right">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${items.map(item => `
+        <tr>
+          <td>${item.product.name}</td>
+          <td class="text-center">${item.quantity}</td>
+          <td class="text-right">${formatCurrency(item.pricePerUnit)}</td>
+          <td class="text-right">${formatCurrency(item.quantity * item.pricePerUnit)}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+
+  <div class="total-section">
+    <div class="total-row">
+      <span>TOTAL:</span>
+      <span>${formatCurrency(totalAmount.value)}</span>
+    </div>
+    
+    ${paymentMethod.value === 'cash' && paymentAmount.value ? `
+      <div class="payment-row">
+        <span>Bayar:</span>
+        <span>${formatCurrency(paymentAmount.value)}</span>
+      </div>
+      <div class="payment-row">
+        <span>Kembali:</span>
+        <span>${formatCurrency(change.value)}</span>
+      </div>
+    ` : `
+      <div class="payment-row">
+        <span>Pembayaran:</span>
+        <span>${paymentMethodLabel}</span>
+      </div>
+    `}
+  </div>
+
+  <div class="footer">
+    <p>Terima kasih atas kunjungan Anda!</p>
+  </div>
+</body>
+</html>
+  `
 }
 
 function newTransaction() {

@@ -120,7 +120,7 @@
             <select v-model="form.categoryId" required class="input">
               <option value="">Pilih Kategori</option>
               <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                {{ cat.name }}
+                {{ cat.icon ? cat.icon + ' ' : '' }}{{ cat.name }}
               </option>
             </select>
           </div>
@@ -234,7 +234,17 @@ async function fetchCategories() {
 
 function editProduct(product: any) {
   editingProduct.value = product
-  form.value = { ...product, categoryId: product.categoryId }
+  // Convert Decimal fields to numbers for form inputs
+  form.value = {
+    name: product.name,
+    code: product.code,
+    categoryId: product.categoryId,
+    price: Number(product.price),
+    cost: Number(product.cost),
+    stock: Number(product.stock),
+    minStock: Number(product.minStock),
+    description: product.description || '',
+  }
   showModal.value = true
 }
 

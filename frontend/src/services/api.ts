@@ -92,7 +92,11 @@ export const debtsAPI = {
     getAll: (params?: any) => apiClient.get('/debts', { params }),
     getById: (id: string) => apiClient.get(`/debts/${id}`),
     addPayment: (data: any) => apiClient.post('/debts/payments', data),
+    updatePayment: (id: string, data: any) => apiClient.put(`/debts/payments/${id}`, data),
+    deletePayment: (id: string) => apiClient.delete(`/debts/payments/${id}`),
     getPayments: (id: string) => apiClient.get(`/debts/${id}/payments`),
+    adjustDebt: (id: string, data: { newTotalDebt: number; reason?: string }) =>
+        apiClient.post(`/debts/${id}/adjust`, data),
 }
 
 // Reports
